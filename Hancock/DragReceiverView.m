@@ -11,7 +11,6 @@
 #import "AppDelegate.h"
 
 @implementation DragReceiverView
-
 /*
  * These methods indicate that we support the given drag operation type
  */
@@ -36,11 +35,18 @@
 		return NO;
 	}
 	
-	NSArray * filenames = [sender.draggingPasteboard propertyListForType:NSFilenamesPboardType];
-	
+	NSPasteboard *pboard = sender.draggingPasteboard;
+	NSArray<NSPasteboardItem *> *items = pboard.pasteboardItems;
 	id vc = [(AppDelegate*)NSApp.delegate mainViewController];
-	for (NSString * filename in filenames) {
-		[vc handleDraggedFilename:filename];
+	for (NSPasteboardItem *item in items) {
+		NSString *urlString = [item stringForType:NSPasteboardTypeFileURL];
+		if (urlString.length > 0) {
+			NSURL *url = [NSURL URLWithString:urlString];
+			if (url.isFileURL) {
+				NSString *path = url.path;
+				[vc handleDraggedFilename:path];
+			}
+		}
 	}
 	
 	return YES;
@@ -52,7 +58,7 @@
 
 - (NSDragOperation)allowedDraggingOperationForSender:(id<NSDraggingInfo>)sender
 {
-	if ([sender.draggingPasteboard.types containsObject:NSFilenamesPboardType] ) {
+	if ([sender.draggingPasteboard.types containsObject:NSPasteboardTypeFileURL]) {
 		if (sender.draggingSourceOperationMask & NSDragOperationCopy) {
 			return NSDragOperationCopy;
 		}
@@ -67,7 +73,7 @@
 
 - (void)awakeFromNib
 {
-	[self registerForDraggedTypes:[NSArray arrayWithObject:NSFilenamesPboardType]];
+	[self registerForDraggedTypes:@[NSPasteboardTypeFileURL]];
 }
 
 @end

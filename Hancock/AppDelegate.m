@@ -19,7 +19,15 @@
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification
 {
 	// We may need to ask the user for permission to sign
-	SecKeychainSetUserInteractionAllowed(true);
+	// SecKeychain and SecKeychainSetUserInteractionAllowed are deprecated on modern macOS.
+	// When linking against newer SDKs, avoid calling the deprecated API to silence warnings.
+	// If your signing flow requires user interaction, consider using Authorization Services
+	// or relying on the system's automatic prompts when accessing keychain items.
+	#if !defined(__MAC_OS_X_VERSION_MAX_ALLOWED) || (__MAC_OS_X_VERSION_MAX_ALLOWED < 101000)
+		SecKeychainSetUserInteractionAllowed(true);
+	#else
+		(void)aNotification; // suppress unused parameter warning if nothing to do
+	#endif
 }
 
 - (void)applicationWillTerminate:(NSNotification *)aNotification
@@ -61,3 +69,4 @@
 }
 
 @end
+

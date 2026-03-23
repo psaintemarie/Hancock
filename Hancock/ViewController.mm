@@ -80,7 +80,7 @@ static NSOpenPanel * _CreateOpenPanel()
 	
 	[openPanel beginSheetModalForWindow:NSApp.mainWindow completionHandler:^(NSModalResponse result) {
 		
-		if (result == NSFileHandlingPanelOKButton) {
+        if (result == NSModalResponseOK) {
 			// Make local ref so we can use them on a global queue without race condition
 			auto signFileURL = openPanel.URL;
 			
@@ -117,7 +117,7 @@ static NSOpenPanel * _CreateOpenPanel()
 	
 	[openPanel beginSheetModalForWindow:NSApp.mainWindow completionHandler:^(NSModalResponse result) {
 		
-		if (result == NSFileHandlingPanelOKButton) {
+        if (result == NSModalResponseOK) {
 			// Make local ref so we can use them on a global queue without race condition
 			auto fileURL = openPanel.URL;
 			
@@ -236,39 +236,21 @@ static NSString * const kStrQuestion = @"❓";
 		CFStringRef nameCF = nullptr;
 		SecCertificateCopyCommonName(cert, &nameCF);
 		
-		CFDataRef serialCF = SecCertificateCopySerialNumber(cert, nullptr);
+        CFDataRef serialCF = SecCertificateCopySerialNumberData(cert, nullptr);
 		
 		SecTrustRef trust = nullptr;
 		SecTrustCreateWithCertificates(cert, policy, &trust);
 		
-		SecTrustResultType result;
-		SecTrustEvaluate(trust, &result);
+		// Evaluate trust using modern API only
+        NSString * trustIndicator = kStrCross;
+        CFErrorRef trustError = NULL;
+        Boolean trustOK = SecTrustEvaluateWithError(trust, &trustError);
+        trustIndicator = trustOK ? kStrCheckmark : kStrCross;
+        if (trustError) {
+            CFRelease(trustError);
+        }
 		
 		CFRelease(trust);
-		
-		NSString * trustIndicator;
-		switch (result) {
-			case kSecTrustResultProceed:
-			case kSecTrustResultUnspecified:
-				trustIndicator = kStrCheckmark;
-				break;
-				
-			case kSecTrustResultConfirm:
-				trustIndicator = kStrQuestion;
-				break;
-				
-			case kSecTrustResultRecoverableTrustFailure:
-				trustIndicator = kStrCaution;
-				break;
-				
-			case kSecTrustResultFatalTrustFailure:
-			case kSecTrustResultOtherError:
-			case kSecTrustResultInvalid:
-			case kSecTrustResultDeny:
-			default:
-				trustIndicator = kStrCross;
-				break;
-		}
 		
 		CFRelease(cert);
 		
@@ -421,7 +403,7 @@ static NSString * const kStrQuestion = @"❓";
 		
 		[savePanel beginSheetModalForWindow:NSApp.mainWindow completionHandler:^(NSModalResponse result) {
 			
-			if (result == NSFileHandlingPanelOKButton) {
+            if (result == NSModalResponseOK) {
 				auto saveURL = savePanel.URL;
 				
 				auto fm = [NSFileManager defaultManager];
@@ -478,7 +460,7 @@ static NSString * const kStrQuestion = @"❓";
 		savePanel.title = @"Choose where to save signed data";
 		
 		[savePanel beginSheetModalForWindow:NSApp.mainWindow completionHandler:^(NSModalResponse result) {
-			if (result == NSFileHandlingPanelOKButton) {
+            if (result == NSModalResponseOK) {
 				auto saveURL = savePanel.URL;
 				[outData writeToURL:saveURL atomically:YES];
 			}
@@ -534,7 +516,7 @@ static NSString * const kStrQuestion = @"❓";
 			savePanel.title = @"Choose where to save unsigned data";
 			
 			[savePanel beginSheetModalForWindow:NSApp.mainWindow completionHandler:^(NSModalResponse result) {
-				if (result == NSFileHandlingPanelOKButton) {
+                if (result == NSModalResponseOK) {
 					auto saveURL = savePanel.URL;
 					[outData writeToURL:saveURL atomically:YES];
 				}
@@ -607,3 +589,4 @@ static NSString * const kStrQuestion = @"❓";
 }
 
 @end
+
