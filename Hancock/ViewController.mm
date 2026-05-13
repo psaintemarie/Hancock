@@ -9,7 +9,7 @@
 #import "ViewController.h"
 #import <Security/Security.h>
 #import <Security/SecCode.h>
-#import "SecCodeSigner.h"
+#import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
 
 @implementation ViewController
 
@@ -77,6 +77,10 @@ static NSOpenPanel * _CreateOpenPanel()
 {
 	auto openPanel = _CreateOpenPanel();
 	openPanel.title = @"Choose a file to sign";
+	openPanel.allowedContentTypes = @[
+		[UTType typeWithFilenameExtension:@"mobileconfig"],
+		[UTType typeWithFilenameExtension:@"pkg"],
+	];
 	
 	[openPanel beginSheetModalForWindow:NSApp.mainWindow completionHandler:^(NSModalResponse result) {
 		
@@ -114,6 +118,9 @@ static NSOpenPanel * _CreateOpenPanel()
 {
 	auto openPanel = _CreateOpenPanel();
 	openPanel.title = @"Choose a file to unsign";
+	openPanel.allowedContentTypes = @[
+		[UTType typeWithFilenameExtension:@"mobileconfig"],
+	];
 	
 	[openPanel beginSheetModalForWindow:NSApp.mainWindow completionHandler:^(NSModalResponse result) {
 		
@@ -158,37 +165,26 @@ static NSOpenPanel * _CreateOpenPanel()
 - (void)handleDraggedFilename:(NSString *)filename
 {
 	auto chosenIdentity = [self copySelectedIdentity];
-	
-	if (chosenIdentity != nullptr) {
-		
-		dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-			
-			[self startSpinning];
-			
-			[self signFile:[NSURL fileURLWithPath:filename] withIdentity:chosenIdentity];
-			
-			[self stopSpinning];
-			
-			CFRelease(chosenIdentity);
-		});
+
+	if (chosenIdentity == nullptr) {
+		[self showAlertWithMessage:@"No Certificate Selected" informativeText:@"Please select a certificate from the dropdown before dropping a file to sign."];
+		return;
 	}
+
+	dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+
+		[self startSpinning];
+
+		[self signFile:[NSURL fileURLWithPath:filename] withIdentity:chosenIdentity];
+
+		[self stopSpinning];
+
+		CFRelease(chosenIdentity);
+	});
 }
 
 static NSString * const kStrCheckmark = @"✅";
-//Checkmark
-//Unicode: U+2714 U+FE0F, UTF-8: E2 9C 94 EF B8 8F
-
-static NSString * const kStrCross = @"❌";
-//cross mark
-//Unicode: U+274C, UTF-8: E2 9D 8C
-
 static NSString * const kStrCaution = @"⚠️";
-//warning sign
-//Unicode: U+26A0 U+FE0F, UTF-8: E2 9A A0 EF B8 8F
-
-static NSString * const kStrQuestion = @"❓";
-//black question mark ornament
-//Unicode: U+2753, UTF-8: E2 9D 93
 
 /*
  * Loads the popup list by asking Keychain for all identities and getting their certs' name and serial number for display
@@ -242,10 +238,10 @@ static NSString * const kStrQuestion = @"❓";
 		SecTrustCreateWithCertificates(cert, policy, &trust);
 		
 		// Evaluate trust using modern API only
-        NSString * trustIndicator = kStrCross;
+        NSString * trustIndicator = kStrCaution;
         CFErrorRef trustError = NULL;
         Boolean trustOK = SecTrustEvaluateWithError(trust, &trustError);
-        trustIndicator = trustOK ? kStrCheckmark : kStrCross;
+        trustIndicator = trustOK ? kStrCheckmark : kStrCaution;
         if (trustError) {
             CFRelease(trustError);
         }
@@ -259,12 +255,14 @@ static NSString * const kStrQuestion = @"❓";
 		
 		if (name.length > 0 && serial.length > 0) {
 			
-			// Sometimes the serial number is less than 64 bits, in which case I zero-pad it
+			// Normalize serial to exactly 8 bytes (zero-pad short, take last 8 of long)
 			if (serial.length < sizeof(SInt64)) {
 				auto temp = [NSMutableData new];
 				[temp increaseLengthBy:sizeof(SInt64) - serial.length];
 				[temp appendData:serial];
 				serial = temp;
+			} else if (serial.length > sizeof(SInt64)) {
+				serial = [serial subdataWithRange:NSMakeRange(serial.length - sizeof(SInt64), sizeof(SInt64))];
 			}
 			
 			// Keychain displays the serial number as a big-endian 64-bit signed integer
@@ -360,7 +358,12 @@ static NSString * const kStrQuestion = @"❓";
 	task.arguments = @[@"--sign", certName, fileURL.path, tempFileURL.path];
 	
 	// Run the task
-	[task launch];
+	NSError * launchError = nil;
+	if (![task launchAndReturnError:&launchError]) {
+		[[NSFileManager defaultManager] removeItemAtURL:tempFileURL error:nil];
+		[self showAlertWithMessage:@"Failed to Sign Package" informativeText:[NSString stringWithFormat:@"Could not launch the signing tool for '%@'. %@", fileURL.lastPathComponent, launchError.localizedDescription]];
+		return;
+	}
 	
 	// We'll wait 60 seconds for the signing to complete
 	static const NSTimeInterval kTimeoutInterval = 60;
@@ -374,8 +377,10 @@ static NSString * const kStrQuestion = @"❓";
 	});
 	
 	auto timedOut = dispatch_semaphore_wait(waitSem, dispatch_time(DISPATCH_TIME_NOW, (int64_t)(NSEC_PER_SEC * kTimeoutInterval)));
-	
+
 	if (timedOut != 0) {
+		[task terminate];
+		[[NSFileManager defaultManager] removeItemAtURL:tempFileURL error:nil];
 		[self showAlertWithMessage:@"Failed to Sign Package" informativeText:[NSString stringWithFormat:@"Timed out while attempting to sign '%@'.", fileURL.lastPathComponent]];
 		return;
 	}
@@ -402,21 +407,24 @@ static NSString * const kStrQuestion = @"❓";
 		savePanel.title = @"Choose where to save signed package";
 		
 		[savePanel beginSheetModalForWindow:NSApp.mainWindow completionHandler:^(NSModalResponse result) {
-			
+
             if (result == NSModalResponseOK) {
 				auto saveURL = savePanel.URL;
-				
+
 				auto fm = [NSFileManager defaultManager];
-				
+
 				[fm removeItemAtURL:saveURL error:nil];
-				
+
 				NSError * fmErr = nil;
 				auto fmOk = [fm moveItemAtURL:tempFileURL toURL:saveURL error:&fmErr];
-				
+
 				if (!fmOk) {
-					[self showAlertWithMessage:@"Failed to Load Package" informativeText:[NSString stringWithFormat:@"Could not copy the signed package to the target location. File manager says: %@", fmErr.localizedDescription]];
+					[fm removeItemAtURL:tempFileURL error:nil];
+					[self showAlertWithMessage:@"Failed to Save Package" informativeText:[NSString stringWithFormat:@"Could not copy the signed package to the target location. File manager says: %@", fmErr.localizedDescription]];
 					return;
 				}
+			} else {
+				[[NSFileManager defaultManager] removeItemAtURL:tempFileURL error:nil];
 			}
 		}];
 	});
@@ -443,7 +451,7 @@ static NSString * const kStrQuestion = @"❓";
 							 data.bytes, data.length, &outDataCF);
 	
 	if (oserr != 0) {
-		NSString * err = oserr == -1 ? @"Permission to sign with identitiy was denied" : CFBridgingRelease(SecCopyErrorMessageString(oserr, nullptr));
+		NSString * err = oserr == -1 ? @"Permission to sign with identity was denied" : CFBridgingRelease(SecCopyErrorMessageString(oserr, nullptr));
 		[self showAlertWithMessage:@"Signing Failed" informativeText:[NSString stringWithFormat:@"An internal error occurred while attempting to sign '%@'. Security says: %@.", fileURL.lastPathComponent, err]];
 		return;
 	}

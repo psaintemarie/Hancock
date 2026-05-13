@@ -1,7 +1,3 @@
-> PSU MacAdmins Hackathon 2016   
-> ###### Award Winner  
-> Biggest time saver
-
 ![Hancock](./imgs/Hancock.png)
 
 
@@ -37,6 +33,4 @@ If you want to make changes to a signed mobileconfig file, or it you want to vie
 **_\*NOTE: Unsigning pkgs is not supported._**
 
 ## Acknowledgements
-This project was inspired Nick McSpadden's [Profilesigner](https://github.com/nmcspadden/ProfileSigner). A command line utility for signing mobileconfig files. If you're looking for a cli method I suggest you check it out.
-
-
+This is a fork of the original Hancock project from Jeremy Agostino, to create an `arm64` only build of the app. See [JeremyAgost/Hancock](https://github.com/JeremyAgost/Hancock).
