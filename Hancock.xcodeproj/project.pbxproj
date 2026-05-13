@@ -14,6 +14,7 @@
 		3F9BF37D1D21CD5A00805054 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 3F9BF37B1D21CD5A00805054 /* Main.storyboard */; };
 		3F9BF3851D21CD6600805054 /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3F9BF3841D21CD6600805054 /* Security.framework */; };
 		3F9BF38B1D21EF0E00805054 /* DragReceiverView.m in Sources */ = {isa = PBXBuildFile; fileRef = 3F9BF38A1D21EF0E00805054 /* DragReceiverView.m */; };
+		B1C2D3E51D21CD6600805054 /* UniformTypeIdentifiers.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B1C2D3E41D21CD6600805054 /* UniformTypeIdentifiers.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -30,6 +31,7 @@
 		3F9BF3841D21CD6600805054 /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = System/Library/Frameworks/Security.framework; sourceTree = SDKROOT; };
 		3F9BF3891D21EF0E00805054 /* DragReceiverView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DragReceiverView.h; sourceTree = "<group>"; };
 		3F9BF38A1D21EF0E00805054 /* DragReceiverView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = DragReceiverView.m; sourceTree = "<group>"; };
+		B1C2D3E41D21CD6600805054 /* UniformTypeIdentifiers.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UniformTypeIdentifiers.framework; path = System/Library/Frameworks/UniformTypeIdentifiers.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -38,6 +40,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				3F9BF3851D21CD6600805054 /* Security.framework in Frameworks */,
+				B1C2D3E51D21CD6600805054 /* UniformTypeIdentifiers.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -48,6 +51,7 @@
 			isa = PBXGroup;
 			children = (
 				3F9BF3841D21CD6600805054 /* Security.framework */,
+				B1C2D3E41D21CD6600805054 /* UniformTypeIdentifiers.framework */,
 				3F9BF36F1D21CD5A00805054 /* Hancock */,
 				3F9BF36E1D21CD5A00805054 /* Products */,
 			);
@@ -321,7 +325,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.6;
-				MARKETING_VERSION = 1.2.2;
+				MARKETING_VERSION = 1.2.3;
 				OTHER_CODE_SIGN_FLAGS = "$(inherited) --timestamp";
 				PRODUCT_BUNDLE_IDENTIFIER = net.meleia.Hancock;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -349,7 +353,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.6;
-				MARKETING_VERSION = 1.2.2;
+				MARKETING_VERSION = 1.2.3;
 				OTHER_CODE_SIGN_FLAGS = "$(inherited) --timestamp";
 				PRODUCT_BUNDLE_IDENTIFIER = net.meleia.Hancock;
 				PRODUCT_NAME = "$(TARGET_NAME)";
