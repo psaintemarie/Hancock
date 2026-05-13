@@ -32,3 +32,6 @@ xcuserdata
 .idea/tasks.xml
 .idea/misc.xml
 .idea/*plugin.xml
+
+# Claude Code
+.claude/
